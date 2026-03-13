@@ -57,7 +57,8 @@ const TYPE_COLOR  = { send: '#f87171', swap: '#fbbf24', deposit: '#34d399' }
 
 export default function App() {
   // ── top-level state only ────────────────────────────────────────
-  const [phase,        setPhase]        = useState('eth')   // 'eth' | 'modal' | 'multi'
+  const [phase,        setPhase]        = useState('eth')        // 'eth' | 'modal' | 'multi'
+  const [activePage,   setActivePage]   = useState('portfolio')  // 'portfolio' | 'swap' | 'history'
   const [termLines,    setTermLines]    = useState([])
   const [termDone,     setTermDone]     = useState(false)
   const [activeTab,    setActiveTab]    = useState('all')
@@ -185,9 +186,24 @@ export default function App() {
           <div className="tb-left">
             <div className="tb-logo">Meridian</div>
             <nav className="tb-nav">
-              <span className="tb-nl active">Portfolio</span>
-              <span className="tb-nl">Swap</span>
-              <span className="tb-nl">History</span>
+              <span
+                className={'tb-nl' + (activePage === 'portfolio' ? ' active' : '')}
+                onClick={() => setActivePage('portfolio')}
+              >
+                Portfolio
+              </span>
+              <span
+                className={'tb-nl' + (activePage === 'swap' ? ' active' : '')}
+                onClick={() => setActivePage('swap')}
+              >
+                Swap
+              </span>
+              <span
+                className={'tb-nl' + (activePage === 'history' ? ' active' : '')}
+                onClick={() => setActivePage('history')}
+              >
+                History
+              </span>
             </nav>
           </div>
           <div className="tb-right">
@@ -209,9 +225,29 @@ export default function App() {
       <div className="port-header">
         <div className="ph-inner">
           <div>
-            <div className="ph-label">{sdkActive ? 'Total portfolio' : 'Ethereum portfolio'}</div>
-            <div className="ph-total">{sdkActive ? '$44,074' : '$30,650'}</div>
-            <div className="ph-change">{sdkActive ? '+$1,842 (4.4%)' : '+$642 (2.1%)'} today</div>
+            {activePage === 'portfolio' && (
+              <>
+                <div className="ph-label">{sdkActive ? 'Total portfolio' : 'Ethereum portfolio'}</div>
+                <div className="ph-total">{sdkActive ? '$44,074' : '$30,650'}</div>
+                <div className="ph-change">{sdkActive ? '+$1,842 (4.4%)' : '+$642 (2.1%)'} today</div>
+              </>
+            )}
+            {activePage === 'swap' && (
+              <>
+                <div className="ph-label">Swap</div>
+                <div className="ph-total">Cross-chain token routing</div>
+                <div className="ph-change">Simulated flows · no funds move</div>
+              </>
+            )}
+            {activePage === 'history' && (
+              <>
+                <div className="ph-label">History</div>
+                <div className="ph-total">Unified transaction log</div>
+                <div className="ph-change">
+                  {sdkActive ? 'Across Ethereum, Solana, Cosmos, Aptos' : 'Ethereum only · add more chains'}
+                </div>
+              </>
+            )}
           </div>
           <div className="ph-right">
             {sdkActive
@@ -230,182 +266,356 @@ export default function App() {
 
       {/* ── Content ── */}
       <div className="content">
-        <div className="left-col">
+        {activePage === 'portfolio' && (
+          <>
+            <div className="left-col">
 
-          {/* Holdings */}
-          <div className="card">
-            <div className="card-head">
-              <span className="card-title">Holdings</span>
-              <span className="card-count">{tokens.length} assets</span>
-            </div>
-            {tokens.map((t, i) => {
-              const ch = CHAINS.find(c => c.id === t.chain)
-              return (
-                <div key={i} className="tok-row">
-                  <div className="tok-ico">{TOKEN_ICONS[t.symbol] || t.symbol[0]}</div>
-                  <div className="tok-info">
-                    <div className="tok-name">{t.name}</div>
-                    <div className="tok-bal">{t.balance} {t.symbol}</div>
-                  </div>
-                  {sdkActive && ch && (
-                    <div className="tok-chain"
-                      style={{ color: ch.color, background: ch.color + '12', borderColor: ch.color + '35' }}>
-                      {ch.name}
-                    </div>
-                  )}
-                  <div className="tok-right">
-                    <div className="tok-val">{t.value}</div>
-                    <div className={'tok-chg' + (t.up === true ? ' up' : t.up === false ? ' dn' : '')}>{t.change}</div>
-                  </div>
+              {/* Holdings */}
+              <div className="card">
+                <div className="card-head">
+                  <span className="card-title">Holdings</span>
+                  <span className="card-count">{tokens.length} assets</span>
                 </div>
-              )
-            })}
-          </div>
-
-          {/* Transactions */}
-          <div className="card">
-            <div className="card-head">
-              <span className="card-title">Transactions</span>
-              {sdkActive && (
-                <div className="ctabs">
-                  {[{ id: 'all', name: 'All', color: '#718096' }, ...CHAINS].map(c => (
-                    <button key={c.id}
-                      className={'ctab' + (activeTab === c.id ? ' on' : '')}
-                      style={activeTab === c.id && c.id !== 'all'
-                        ? { color: c.color, borderColor: c.color + '50', background: c.color + '0d' } : {}}
-                      onClick={() => setActiveTab(c.id)}>
-                      {c.id !== 'all' && <span className="ctab-dot" style={{ background: c.color }} />}
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {txs.map((tx, i) => {
-              const ch = CHAINS.find(c => c.id === tx.chain)
-              return (
-                <div key={i} className="tx-row">
-                  <div className="tx-ico"
-                    style={{ color: TYPE_COLOR[tx.type], background: TYPE_COLOR[tx.type] + '15' }}>
-                    {TYPE_ICON[tx.type] || '·'}
-                  </div>
-                  <div className="tx-info">
-                    <div className="tx-top">
-                      <span className="tx-type">{tx.type}</span>
+                {tokens.map((t, i) => {
+                  const ch = CHAINS.find(c => c.id === t.chain)
+                  return (
+                    <div key={i} className="tok-row">
+                      <div className="tok-ico">{TOKEN_ICONS[t.symbol] || t.symbol[0]}</div>
+                      <div className="tok-info">
+                        <div className="tok-name">{t.name}</div>
+                        <div className="tok-bal">{t.balance} {t.symbol}</div>
+                      </div>
                       {sdkActive && ch && (
-                        <span className="tx-badge"
+                        <div className="tok-chain"
                           style={{ color: ch.color, background: ch.color + '12', borderColor: ch.color + '35' }}>
                           {ch.name}
-                        </span>
+                        </div>
                       )}
-                      <span className={'tx-st ' + tx.status}>{tx.status}</span>
-                      <span className="tx-time">{tx.time}</span>
+                      <div className="tok-right">
+                        <div className="tok-val">{t.value}</div>
+                        <div className={'tok-chg' + (t.up === true ? ' up' : t.up === false ? ' dn' : '')}>{t.change}</div>
+                      </div>
                     </div>
-                    <div className="tx-sub">
-                      <span className="tx-hash">{tx.hash}</span>
-                      <span className="tx-sep">·</span>
-                      <span className="tx-to">to {tx.to}</span>
+                  )
+                })}
+              </div>
+
+              {/* Transactions */}
+              <div className="card">
+                <div className="card-head">
+                  <span className="card-title">Transactions</span>
+                  {sdkActive && (
+                    <div className="ctabs">
+                      {[{ id: 'all', name: 'All', color: '#718096' }, ...CHAINS].map(c => (
+                        <button key={c.id}
+                          className={'ctab' + (activeTab === c.id ? ' on' : '')}
+                          style={activeTab === c.id && c.id !== 'all'
+                            ? { color: c.color, borderColor: c.color + '50', background: c.color + '0d' } : {}}
+                          onClick={() => setActiveTab(c.id)}>
+                          {c.id !== 'all' && <span className="ctab-dot" style={{ background: c.color }} />}
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {txs.map((tx, i) => {
+                  const ch = CHAINS.find(c => c.id === tx.chain)
+                  return (
+                    <div key={i} className="tx-row">
+                      <div className="tx-ico"
+                        style={{ color: TYPE_COLOR[tx.type], background: TYPE_COLOR[tx.type] + '15' }}>
+                        {TYPE_ICON[tx.type] || '·'}
+                      </div>
+                      <div className="tx-info">
+                        <div className="tx-top">
+                          <span className="tx-type">{tx.type}</span>
+                          {sdkActive && ch && (
+                            <span className="tx-badge"
+                              style={{ color: ch.color, background: ch.color + '12', borderColor: ch.color + '35' }}>
+                              {ch.name}
+                            </span>
+                          )}
+                          <span className={'tx-st ' + tx.status}>{tx.status}</span>
+                          <span className="tx-time">{tx.time}</span>
+                        </div>
+                        <div className="tx-sub">
+                          <span className="tx-hash">{tx.hash}</span>
+                          <span className="tx-sep">·</span>
+                          <span className="tx-to">to {tx.to}</span>
+                        </div>
+                      </div>
+                      <div className="tx-amt">{tx.amount}</div>
+                    </div>
+                  )
+                })}
+                {!sdkActive && (
+                  <div className="card-foot">
+                    Showing Ethereum only ·
+                    <button className="foot-link" onClick={openModal}>Add multichain →</button>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Decoder */}
+            <div className="right-col">
+              <div className="card">
+                <div className="card-head"><span className="card-title">Decode Transaction</span></div>
+                <div className="dec-body">
+
+                  <div className="field">
+                    <div className="field-lbl">chain</div>
+                    <div className="cpick-grid">
+                      {availChains.map(c => (
+                        <button key={c.id}
+                          className={'cpick' + (decodeChain === c.id ? ' sel' : '')}
+                          style={decodeChain === c.id
+                            ? { borderColor: c.color, background: c.color + '10', color: c.color } : {}}
+                          onClick={() => { setDecodeChain(c.id); setDecodeResult(null); setDecodeError(null) }}>
+                          <span className="cpick-dot" style={{ background: c.color }} />
+                          {c.name}
+                        </button>
+                      ))}
+                      {!sdkActive && (
+                        <div className="cpick-lock" onClick={openModal}>
+                          <span>🔒</span><span>install SDK to unlock</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="tx-amt">{tx.amount}</div>
+
+                  <div className="field">
+                    <div className="field-lbl">transaction hash</div>
+                    <input className="hash-in" placeholder="paste tx hash..."
+                      value={decodeHash}
+                      onChange={e => { setDecodeHash(e.target.value); setDecodeError(null) }}
+                      onKeyDown={e => e.key === 'Enter' && onDecode()} />
+                  </div>
+
+                  <button className={'dec-btn' + (decoding ? ' busy' : '')}
+                    disabled={!decodeHash.trim() || decoding}
+                    style={dcMeta && decodeHash.trim()
+                      ? { borderColor: dcMeta.color + '40', background: dcMeta.color + '08', color: dcMeta.color } : {}}
+                    onClick={onDecode}>
+                    {decoding
+                      ? <><span className="spin" />decoding…</>
+                      : `Decode${dcMeta ? ' on ' + dcMeta.name : ''}`}
+                  </button>
+
+                  {sdkActive && (
+                    <div className="sdk-note">powered by <span>chainmerge-sdk</span> · {dcMeta?.encoding}</div>
+                  )}
+
+                  {decodeError && (
+                    <div className="err-box">
+                      <div className="err-t">Failed</div>
+                      <div className="err-m">{decodeError}</div>
+                      <div className="err-h">Make sure ChainMerge API is running on :3000</div>
+                    </div>
+                  )}
+
+                  {decodeResult && (
+                    <div className="res-box">
+                      <div className="res-head">
+                        <span className="res-chain" style={{ color: CHAINS.find(c => c.id === decodeResult.chain)?.color }}>
+                          {CHAINS.find(c => c.id === decodeResult.chain)?.name || decodeResult.chain}
+                        </span>
+                        <span className={'res-st ' + (decodeResult.status === 'success' ? 'ok' : 'fail')}>
+                          {decodeResult.status}
+                        </span>
+                      </div>
+                      <div className="res-rows">
+                        {decodeResult.tx_hash  && <div className="res-row"><span className="rk">hash</span>  <span className="rv">{decodeResult.tx_hash.slice(0,18)}…</span></div>}
+                        {decodeResult.sender   && <div className="res-row"><span className="rk">from</span>  <span className="rv">{decodeResult.sender.slice(0,14)}…</span></div>}
+                        {decodeResult.receiver && <div className="res-row"><span className="rk">to</span>    <span className="rv">{decodeResult.receiver.slice(0,14)}…</span></div>}
+                        {decodeResult.fee      && <div className="res-row"><span className="rk">fee</span>   <span className="rv">{decodeResult.fee.amount} {decodeResult.fee.symbol}</span></div>}
+                        <div className="res-row"><span className="rk">events</span><span className="rv">{decodeResult.events?.length || 0} decoded</span></div>
+                      </div>
+                      <pre className="res-raw">{JSON.stringify(decodeResult, null, 2)}</pre>
+                    </div>
+                  )}
+
+                  {!sdkActive && !decodeResult && !decodeError && (
+                    <div className="dec-note">Install chainmerge-sdk to unlock Solana, Cosmos, Aptos and more.</div>
+                  )}
+
                 </div>
-              )
-            })}
-            {!sdkActive && (
-              <div className="card-foot">
-                Showing Ethereum only ·
-                <button className="foot-link" onClick={openModal}>Add multichain →</button>
               </div>
-            )}
-          </div>
+            </div>
+          </>
+        )}
 
-        </div>
-
-        {/* Decoder */}
-        <div className="right-col">
-          <div className="card">
-            <div className="card-head"><span className="card-title">Decode Transaction</span></div>
-            <div className="dec-body">
-
-              <div className="field">
-                <div className="field-lbl">chain</div>
-                <div className="cpick-grid">
-                  {availChains.map(c => (
-                    <button key={c.id}
-                      className={'cpick' + (decodeChain === c.id ? ' sel' : '')}
-                      style={decodeChain === c.id
-                        ? { borderColor: c.color, background: c.color + '10', color: c.color } : {}}
-                      onClick={() => { setDecodeChain(c.id); setDecodeResult(null); setDecodeError(null) }}>
-                      <span className="cpick-dot" style={{ background: c.color }} />
-                      {c.name}
-                    </button>
-                  ))}
+        {activePage === 'swap' && (
+          <>
+            <div className="left-col">
+              <div className="card">
+                <div className="card-head">
+                  <span className="card-title">Swap</span>
+                  <span className="card-count">{sdkActive ? 'Multichain routing' : 'Ethereum only'}</span>
+                </div>
+                <div className="dec-body">
+                  <div className="field">
+                    <div className="field-lbl">from chain</div>
+                    <div className="cpick-grid">
+                      {availChains.map(c => (
+                        <button
+                          key={c.id}
+                          className="cpick"
+                          style={{ borderColor: c.color + '50', background: c.color + '08', color: c.color }}
+                        >
+                          <span className="cpick-dot" style={{ background: c.color }} />
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="field">
+                    <div className="field-lbl">amount</div>
+                    <input className="hash-in" placeholder="0.00" />
+                  </div>
+                  <div className="field">
+                    <div className="field-lbl">to token</div>
+                    <input className="hash-in" placeholder="Select token…" />
+                  </div>
+                  <button className="dec-btn" disabled>
+                    Preview route (demo only)
+                  </button>
                   {!sdkActive && (
-                    <div className="cpick-lock" onClick={openModal}>
-                      <span>🔒</span><span>install SDK to unlock</span>
+                    <div className="dec-note">
+                      Install chainmerge-sdk to simulate realistic cross-chain swap paths.
                     </div>
                   )}
                 </div>
               </div>
-
-              <div className="field">
-                <div className="field-lbl">transaction hash</div>
-                <input className="hash-in" placeholder="paste tx hash..."
-                  value={decodeHash}
-                  onChange={e => { setDecodeHash(e.target.value); setDecodeError(null) }}
-                  onKeyDown={e => e.key === 'Enter' && onDecode()} />
-              </div>
-
-              <button className={'dec-btn' + (decoding ? ' busy' : '')}
-                disabled={!decodeHash.trim() || decoding}
-                style={dcMeta && decodeHash.trim()
-                  ? { borderColor: dcMeta.color + '40', background: dcMeta.color + '08', color: dcMeta.color } : {}}
-                onClick={onDecode}>
-                {decoding
-                  ? <><span className="spin" />decoding…</>
-                  : `Decode${dcMeta ? ' on ' + dcMeta.name : ''}`}
-              </button>
-
-              {sdkActive && (
-                <div className="sdk-note">powered by <span>chainmerge-sdk</span> · {dcMeta?.encoding}</div>
-              )}
-
-              {decodeError && (
-                <div className="err-box">
-                  <div className="err-t">Failed</div>
-                  <div className="err-m">{decodeError}</div>
-                  <div className="err-h">Make sure ChainMerge API is running on :3000</div>
-                </div>
-              )}
-
-              {decodeResult && (
-                <div className="res-box">
-                  <div className="res-head">
-                    <span className="res-chain" style={{ color: CHAINS.find(c => c.id === decodeResult.chain)?.color }}>
-                      {CHAINS.find(c => c.id === decodeResult.chain)?.name || decodeResult.chain}
-                    </span>
-                    <span className={'res-st ' + (decodeResult.status === 'success' ? 'ok' : 'fail')}>
-                      {decodeResult.status}
-                    </span>
-                  </div>
-                  <div className="res-rows">
-                    {decodeResult.tx_hash  && <div className="res-row"><span className="rk">hash</span>  <span className="rv">{decodeResult.tx_hash.slice(0,18)}…</span></div>}
-                    {decodeResult.sender   && <div className="res-row"><span className="rk">from</span>  <span className="rv">{decodeResult.sender.slice(0,14)}…</span></div>}
-                    {decodeResult.receiver && <div className="res-row"><span className="rk">to</span>    <span className="rv">{decodeResult.receiver.slice(0,14)}…</span></div>}
-                    {decodeResult.fee      && <div className="res-row"><span className="rk">fee</span>   <span className="rv">{decodeResult.fee.amount} {decodeResult.fee.symbol}</span></div>}
-                    <div className="res-row"><span className="rk">events</span><span className="rv">{decodeResult.events?.length || 0} decoded</span></div>
-                  </div>
-                  <pre className="res-raw">{JSON.stringify(decodeResult, null, 2)}</pre>
-                </div>
-              )}
-
-              {!sdkActive && !decodeResult && !decodeError && (
-                <div className="dec-note">Install chainmerge-sdk to unlock Solana, Cosmos, Aptos and more.</div>
-              )}
-
             </div>
-          </div>
-        </div>
+            <div className="right-col">
+              <div className="card">
+                <div className="card-head">
+                  <span className="card-title">Recent swaps</span>
+                  <span className="card-count">{txs.filter(t => t.type === 'swap').length} sample routes</span>
+                </div>
+                {txs.filter(t => t.type === 'swap').map((tx, i) => {
+                  const ch = CHAINS.find(c => c.id === tx.chain)
+                  return (
+                    <div key={i} className="tx-row">
+                      <div className="tx-ico"
+                        style={{ color: TYPE_COLOR[tx.type], background: TYPE_COLOR[tx.type] + '15' }}>
+                        {TYPE_ICON[tx.type] || '·'}
+                      </div>
+                      <div className="tx-info">
+                        <div className="tx-top">
+                          <span className="tx-type">swap</span>
+                          {sdkActive && ch && (
+                            <span className="tx-badge"
+                              style={{ color: ch.color, background: ch.color + '12', borderColor: ch.color + '35' }}>
+                              {ch.name}
+                            </span>
+                          )}
+                          <span className={'tx-st ' + tx.status}>{tx.status}</span>
+                          <span className="tx-time">{tx.time}</span>
+                        </div>
+                        <div className="tx-sub">
+                          <span className="tx-hash">{tx.hash}</span>
+                          <span className="tx-sep">·</span>
+                          <span className="tx-to">to {tx.to}</span>
+                        </div>
+                      </div>
+                      <div className="tx-amt">{tx.amount}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {activePage === 'history' && (
+          <>
+            <div className="left-col">
+              <div className="card">
+                <div className="card-head">
+                  <span className="card-title">Activity</span>
+                  <span className="card-count">
+                    {sdkActive ? 'All chains' : 'Ethereum only'}
+                  </span>
+                </div>
+                {txs.map((tx, i) => {
+                  const ch = CHAINS.find(c => c.id === tx.chain)
+                  return (
+                    <div key={i} className="tx-row">
+                      <div className="tx-ico"
+                        style={{ color: TYPE_COLOR[tx.type], background: TYPE_COLOR[tx.type] + '15' }}>
+                        {TYPE_ICON[tx.type] || '·'}
+                      </div>
+                      <div className="tx-info">
+                        <div className="tx-top">
+                          <span className="tx-type">{tx.type}</span>
+                          {sdkActive && ch && (
+                            <span className="tx-badge"
+                              style={{ color: ch.color, background: ch.color + '12', borderColor: ch.color + '35' }}>
+                              {ch.name}
+                            </span>
+                          )}
+                          <span className={'tx-st ' + tx.status}>{tx.status}</span>
+                          <span className="tx-time">{tx.time}</span>
+                        </div>
+                        <div className="tx-sub">
+                          <span className="tx-hash">{tx.hash}</span>
+                          <span className="tx-sep">·</span>
+                          <span className="tx-to">to {tx.to}</span>
+                        </div>
+                      </div>
+                      <div className="tx-amt">{tx.amount}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="right-col">
+              <div className="card">
+                <div className="card-head">
+                  <span className="card-title">Filters</span>
+                  <span className="card-count">Static demo</span>
+                </div>
+                <div className="dec-body">
+                  <div className="field">
+                    <div className="field-lbl">chain</div>
+                    <div className="cpick-grid">
+                      {[{ id: 'all', name: 'All', color: '#718096' }, ...CHAINS].map(c => (
+                        <button
+                          key={c.id}
+                          className="cpick"
+                          style={c.id === 'all'
+                            ? {}
+                            : { borderColor: c.color + '40', background: c.color + '08', color: c.color }}
+                        >
+                          {c.id !== 'all' && <span className="cpick-dot" style={{ background: c.color }} />}
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="field">
+                    <div className="field-lbl">type</div>
+                    <div className="cpick-grid">
+                      {['send', 'swap', 'deposit'].map(t => (
+                        <button key={t} className="cpick">
+                          <span className="cpick-dot" />
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="dec-note">
+                    In a real app this would drive server-side or on-chain history queries.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
